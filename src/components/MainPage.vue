@@ -13,8 +13,9 @@
             <v-divider></v-divider>
             <v-card-title primary-title>
               <div>
-                <h3><v-text-field :value='project.title' v-model='project.title'> </v-text-field> </h3>
-
+                <v-form v-model="validProject" ref="formProject">
+                <h3><v-text-field :rules="taskDescriptionRules" :value='projectTitle' v-model='projectTitle' v-on:change="updateProjectTitle"> </v-text-field> </h3>
+                </v-form>
               </div>
             </v-card-title>
             <v-card-text >
@@ -39,7 +40,7 @@
       </v-layout>
     </v-slide-y-transition>
 
-    <v-layout row justify-center>
+    <v-layout row justify-center v-if="project">
       <v-dialog
         v-model="dialog"
         max-width="290"
@@ -48,7 +49,7 @@
           <v-card-title class="headline">Delete project</v-card-title>
 
           <v-card-text>
-            Are you sure you want to delete the project "{{items[idx].title}}"?
+            Are you sure you want to delete the project "{{project.title}}"?
           </v-card-text>
 
           <v-card-actions>
@@ -77,6 +78,8 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   props: {
     idx: {
@@ -89,15 +92,21 @@ export default {
   watch: {
     idx: function watchMyProp(newVal, oldVal) { // watch it
       // eslint-disable-next-line
-      console.log('Prop changed: ', newVal.title, ' | was: ', oldVal.title);
+      console.log('Prop changed: ', newVal, ' | was: ', oldVal);
       this.project = this.items[newVal];
+      this.projectTitle = this.items[newVal].title;
     },
   },
   data() {
     return {
       project: null,
+      projectTitle: '',
       valid: false,
+      validProject: false,
       dialog: false,
+      projectTitleRules: [
+        v => !!v || 'Title is required',
+      ],
       taskDescriptionRules: [
         v => !!v || 'Description is required',
       ],
@@ -123,6 +132,23 @@ export default {
     };
   },
   methods: {
+    updateProjectTitle: function updateProjectTitle() {
+      if (this.$refs.formProject.validate()) {
+        const projectId = this.project.id;
+        axios.put(`${process.env.API_URL}/projects/${projectId}`, { title: this.projectTitle })
+              .then(
+                (response) => {
+                  if (response.status === 200) {
+                    this.project = response.data;
+                    this.items[this.idx].title = this.project.title;
+                    this.projectTitle = this.project.title;
+                  }
+                },
+              );
+      } else {
+        this.projectTitle = this.project.title;
+      }
+    },
     validateTask: function validateTask(e) {
       if (e.keyCode === 13) {
         this.addTask();
@@ -144,9 +170,15 @@ export default {
       this.selectedTasks = [];
     },
     deleteProject: function deleteProject() {
-      this.items.splice(this.idx, 1);
-      this.project = null;
-      this.dialog = false;
+      const projectId = this.project.id;
+      axios.delete(`${process.env.API_URL}/projects/${projectId}`)
+            .then(
+              () => {
+                this.items.splice(this.idx, 1);
+                this.project = null;
+                this.dialog = false;
+              },
+            );
     },
   },
 };
