@@ -9,11 +9,12 @@ This is the client side application of a project that will manage projects and t
 
 ## How to **Run**
 
+> Fist, we need to run the server-side application. You can find it [here](https://github.com/evandroferreiras/yapmt-api).
+
 ``` bash
-# install dependencies
 npm install
 
-# serve with hot reload at localhost:8080
 npm run dev
-
 ```
+
+After, you can acess the application in http://localhost:8080
