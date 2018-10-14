@@ -41,7 +41,7 @@
       :clipped-left='clipped'
     >
       <v-toolbar-side-icon @click.stop='drawer = !drawer'></v-toolbar-side-icon>
-      <v-toolbar-title v-text='title'></v-toolbar-title>
+      <v-toolbar-title v-text='app_title'></v-toolbar-title>
       <v-spacer></v-spacer>
     </v-toolbar>
     <v-content>
@@ -54,40 +54,44 @@
 </template>
 
 <script>
+import axios from 'axios';
+
 export default {
   data() {
     return {
       clipped: false,
       drawer: true,
       icon: 'blur_on',
-      items: [{
-        title: 'Project 1',
-      },
-      {
-        title: 'Project 2',
-      },
-      {
-        title: 'Project 3',
-      },
-      {
-        title: 'Project 4',
-      }],
+      items: [],
 
-      title: 'YAMT',
+      app_title: 'YAMT',
       idxSelected: -1,
       itemSelected: '',
     };
   },
+  mounted: function mounted() {
+    this.getProjects();
+  },
   methods: {
+    getProjects: function getProjects() {
+      axios.get(`${process.env.API_URL}/projects`)
+      .then((response) => {
+        this.items = response.data;
+      });
+    },
     newProject: function newProject() {
-      const id = this.items.push({ title: 'New project' }) - 1;
-      this.selectProject(id);
+      const data = { title: 'New project' };
+      axios.post(`${process.env.API_URL}/projects`, data)
+            .then(
+              (response) => {
+                const id = this.items.push(response.data) - 1;
+                this.selectProject(id);
+              },
+            );
     },
     selectProject: function selectProject(i) {
       this.idxSelected = i;
       this.itemSelected = this.items[i];
-      // eslint-disable-next-line
-      console.log(this.itemSelected.title);
     },
   },
   name: 'App',
