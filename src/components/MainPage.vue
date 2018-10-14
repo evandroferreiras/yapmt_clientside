@@ -6,8 +6,6 @@
           <v-card>
             <v-card-actions>
               <v-spacer></v-spacer>
-
-              <v-btn flat color='red' @click='deleteSelected' >Delete Tasks</v-btn>
               <v-btn color='red' dark @click="dialog = true" >Delete Project</v-btn>
             </v-card-actions>
             <v-divider></v-divider>
@@ -20,7 +18,22 @@
             </v-card-title>
             <v-card-text >
               <div>
-                <v-checkbox v-model='selectedTasks' v-bind:key=i v-for='(task, i) in tasks' :label="task.description + ', ' + task.username + ', ' + task.dueTime" :value='task'></v-checkbox>
+                <v-list>
+                  <v-list-tile
+                      value='true'
+                      v-for='(task, i) in tasks'
+                      :key='i'
+                    >
+                    <v-list-tile-content>
+                      <v-checkbox v-on:change="updateTask(task)" v-model='task.checked' :label="task.description + ', ' + task.username + ', ' + task.dueTimeStatus" ></v-checkbox>
+                    </v-list-tile-content>
+                    <v-list-tile-action>
+                      <v-icon @click="deleteTask(task)">delete</v-icon>
+                    </v-list-tile-action>
+
+                  </v-list-tile>
+                </v-list>
+                <!-- <v-checkbox  v-model='task.checked' v-bind:key=i v-for='(task, i) in tasks' :label="task.description + ', ' + task.username + ', ' + task.dueTime" ></v-checkbox> -->
               </div>
 
               <div >
@@ -90,11 +103,10 @@ export default {
     },
   },
   watch: {
-    idx: function watchMyProp(newVal, oldVal) { // watch it
-      // eslint-disable-next-line
-      console.log('Prop changed: ', newVal, ' | was: ', oldVal);
+    idx: function watchMyProp(newVal) {
       this.project = this.items[newVal];
       this.projectTitle = this.items[newVal].title;
+      this.getTasks();
     },
   },
   data() {
@@ -116,22 +128,27 @@ export default {
       ],
       taskDueTimeRules: [
         v => !!v || 'Due time is required',
-        v => (v && !!v.match(/^((\d\d)\/(\d\d))$/gm)) || 'Due time has to have the format dd/MM',
+        v => (v && !!v.match(/^((\d\d)\/(\d\d))$/gm)) || 'Due time has to have the format MM/dd',
       ],
-      tasks: [
-        { id: 1, description: 'task1', username: '@user1', dueTime: '10/01' },
-        { id: 2, description: 'task2', username: '@user2', dueTime: '10/14' },
-        { id: 3, description: 'task3', username: '@user3', dueTime: '10/30' },
-      ],
-      selectedTasks: [],
+      tasks: [],
       newTask: {
         description: '',
         username: '',
         dueTime: '',
+        checked: false,
       },
     };
   },
   methods: {
+    getTasks: function getTasks() {
+      axios.get(`${process.env.API_URL}/tasks/projectId=${this.project.id}`)
+      .then((response) => {
+        this.tasks = response.data;
+      });
+    },
+    updateTask: function updateTask(task) {
+      axios.put(`${process.env.API_URL}/tasks/${task.id}`, task);
+    },
     updateProjectTitle: function updateProjectTitle() {
       if (this.$refs.formProject.validate()) {
         const projectId = this.project.id;
@@ -157,17 +174,20 @@ export default {
     addTask: function addTask() {
       if (this.$refs.form.validate()) {
         if (this.newTask) {
-          this.tasks.push(Object.assign({}, this.newTask));
-          this.$refs.form.reset();
+          this.newTask.projectId = this.project.id;
+          axios.post(`${process.env.API_URL}/tasks`, this.newTask)
+            .then(
+              (response) => {
+                this.tasks.push(response.data);
+                this.$refs.form.reset();
+              },
+            );
         }
       }
     },
-    deleteSelected: function deleteSelected() {
-      this.selectedTasks.forEach((task) => {
-        this.tasks.splice(this.tasks.indexOf(task), 1);
-      });
-
-      this.selectedTasks = [];
+    deleteTask: function deleteTask(task) {
+      axios.delete(`${process.env.API_URL}/tasks/${task.id}`);
+      this.tasks.splice(this.tasks.indexOf(task), 1);
     },
     deleteProject: function deleteProject() {
       const projectId = this.project.id;
