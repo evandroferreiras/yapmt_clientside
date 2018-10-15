@@ -6,6 +6,8 @@
           <v-card>
             <v-card-actions>
               <v-spacer></v-spacer>
+                {{projectSummary.completed}} | {{projectSummary.late}} | {{projectSummary.total}}
+              <v-spacer></v-spacer>
               <v-btn color='red' dark @click="dialog = true" >Delete Project</v-btn>
             </v-card-actions>
             <v-divider></v-divider>
@@ -25,8 +27,11 @@
                       :key='i'
                     >
                     <v-list-tile-content>
-                      <v-checkbox v-on:change="updateTask(task)" v-model='task.checked' :label="task.description + ', ' + task.username + ', ' + task.dueTimeStatus" ></v-checkbox>
+                      <v-checkbox v-bind:class='{ strikethrough: (task.checked)}' v-on:change="updateTask(task)" v-model='task.checked' :label="task.description + ', ' + task.username + ', ' + task.dueTimeStatus" ></v-checkbox>
                     </v-list-tile-content>
+                    <v-list-tile-action>
+                      <v-icon  color="red" v-if="task.statusTask === 'late'">alarm</v-icon>
+                    </v-list-tile-action>
                     <v-list-tile-action>
                       <v-icon @click="deleteTask(task)">delete</v-icon>
                     </v-list-tile-action>
@@ -108,9 +113,17 @@ export default {
       this.projectTitle = this.items[newVal].title;
       this.getTasks();
     },
+    tasks: function watchTasks() {
+      this.refreshSummary()
+    },
   },
   data() {
     return {
+      projectSummary: {
+        completed: 0,
+        total: 0,
+        late: 0
+      },
       project: null,
       projectTitle: '',
       valid: false,
@@ -140,6 +153,15 @@ export default {
     };
   },
   methods: {
+    refreshSummary: function refreshSummary(){
+
+      axios.get(`${process.env.API_URL}/projects/${this.project.id}/summary`)
+      .then(
+        (response) => {
+          this.projectSummary = response.data
+        },
+      );
+    },
     getTasks: function getTasks() {
       axios.get(`${process.env.API_URL}/tasks/projectId=${this.project.id}`)
       .then((response) => {
@@ -147,7 +169,11 @@ export default {
       });
     },
     updateTask: function updateTask(task) {
-      axios.put(`${process.env.API_URL}/tasks/${task.id}`, task);
+      axios.put(`${process.env.API_URL}/tasks/${task.id}`, task)
+        .then( () => {
+          this.refreshSummary()
+          this.getTasks()
+        });
     },
     updateProjectTitle: function updateProjectTitle() {
       if (this.$refs.formProject.validate()) {
@@ -186,8 +212,12 @@ export default {
       }
     },
     deleteTask: function deleteTask(task) {
-      axios.delete(`${process.env.API_URL}/tasks/${task.id}`);
-      this.tasks.splice(this.tasks.indexOf(task), 1);
+      axios.delete(`${process.env.API_URL}/tasks/${task.id}`)
+        .then( ()=> {
+            this.tasks.splice(this.tasks.indexOf(task), 1);
+            this.refreshSummary()
+        });
+
     },
     deleteProject: function deleteProject() {
       const projectId = this.project.id;
@@ -219,6 +249,14 @@ li {
   display: inline-block;
   margin: 0 10px;
 }
+.strikethrough {
+  text-decoration: line-through;
+}
+
+.late {
+  color: red !important
+}
+
 a {
   color: #42b983;
 }
