@@ -114,7 +114,7 @@ export default {
       this.getTasks();
     },
     tasks: function watchTasks() {
-      this.refreshSummary()
+      this.refreshSummary();
     },
   },
   data() {
@@ -122,7 +122,7 @@ export default {
       projectSummary: {
         completed: 0,
         total: 0,
-        late: 0
+        late: 0,
       },
       project: null,
       projectTitle: '',
@@ -153,12 +153,11 @@ export default {
     };
   },
   methods: {
-    refreshSummary: function refreshSummary(){
-
+    refreshSummary: function refreshSummary() {
       axios.get(`${process.env.API_URL}/projects/${this.project.id}/summary`)
       .then(
         (response) => {
-          this.projectSummary = response.data
+          this.projectSummary = response.data;
         },
       );
     },
@@ -170,9 +169,9 @@ export default {
     },
     updateTask: function updateTask(task) {
       axios.put(`${process.env.API_URL}/tasks/${task.id}`, task)
-        .then( () => {
-          this.refreshSummary()
-          this.getTasks()
+        .then(() => {
+          this.refreshSummary();
+          this.getTasks();
         });
     },
     updateProjectTitle: function updateProjectTitle() {
@@ -213,11 +212,10 @@ export default {
     },
     deleteTask: function deleteTask(task) {
       axios.delete(`${process.env.API_URL}/tasks/${task.id}`)
-        .then( ()=> {
-            this.tasks.splice(this.tasks.indexOf(task), 1);
-            this.refreshSummary()
+        .then(() => {
+          this.tasks.splice(this.tasks.indexOf(task), 1);
+          this.refreshSummary();
         });
-
     },
     deleteProject: function deleteProject() {
       const projectId = this.project.id;
